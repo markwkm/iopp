@@ -39,6 +39,7 @@ struct io_node
 };
 
 struct io_node *head = NULL;
+int idle_flag = 0;
 
 /* Prototypes */
 struct io_node *get_ion(int);
@@ -119,6 +120,14 @@ get_stats()
 		struct io_node *ion;
 		struct io_node *old_ion;
 
+		long long rchar;
+		long long wchar;
+		long long syscr;
+		long long syscw;
+		long long read_bytes;
+		long long write_bytes;
+		long long cancelled_write_bytes;
+
 		if (!isdigit(ent->d_name[0]))
 			continue;
 
@@ -172,18 +181,37 @@ get_stats()
 
 		/* Display the pid's io data. */
 		if (old_ion != NULL)
+		{
+			rchar = ion->rchar - old_ion->rchar;
+			wchar = ion->wchar - old_ion->wchar;
+			syscr = ion->syscr - old_ion->syscr;
+			syscw = ion->syscw - old_ion->syscw;
+			read_bytes = ion->read_bytes - old_ion->read_bytes;
+			write_bytes = ion->write_bytes - old_ion->write_bytes;
+			cancelled_write_bytes = ion->cancelled_write_bytes -
+					old_ion->cancelled_write_bytes;
+
+			if (idle_flag == 1 && rchar == 0 && wchar == 0 && syscr == 0 &&
+					syscw == 0 && read_bytes == 0 && write_bytes == 0 &&
+					cancelled_write_bytes == 0)
+				continue;
+
 			printf("%5d %8lld %8lld %8lld %8lld %8lld %8lld %8lld %s\n",
 					ion->pid,
-					ion->rchar - old_ion->rchar,
-					ion->wchar - old_ion->wchar,
-					ion->syscr - old_ion->syscr,
-					ion->syscw - old_ion->syscw,
-					ion->read_bytes - old_ion->read_bytes,
-					ion->write_bytes - old_ion->write_bytes,
-					ion->cancelled_write_bytes - old_ion->cancelled_write_bytes,
+					rchar,
+					wchar,
+					syscr,
+					syscw,
+					read_bytes,
+					write_bytes,
+					cancelled_write_bytes,
 					ion->command);
-		else
-			/* No previous data, show 0's instead of calculating negatives. */
+		}
+		else if (idle_flag != 1)
+			/*
+			 * No previous data, show 0's instead of calculating negatives
+			 * only if we are shoring idle processes.
+			 */
 			printf("%5d %8d %8d %8d %8d %8d %8d %8d %s\n",
 					ion->pid, 0, 0, 0, 0, 0, 0, 0, ion->command);
 
@@ -244,7 +272,8 @@ void
 usage()
 {
 	printf("usage: iopp -h|--help\n");
-	printf("usage: iopp [delay [count]]\n");
+	printf("usage: iopp [-i] [delay [count]]\n");
+	printf("            -i hides idle processes\n");
 }
 
 int
@@ -261,10 +290,11 @@ main(int argc, char *argv[])
 		int option_index = 0;
 		static struct option long_options[] = {
 				{ "help", no_argument, 0, 'h' },
+				{ "idle", no_argument, 0, 'i' },
 				{ 0, 0, 0, 0 }
 		};
 
-		c = getopt_long(argc, argv, "h", long_options, &option_index);
+		c = getopt_long(argc, argv, "hi", long_options, &option_index);
 		if (c == -1)
 		{
 			/* Handle delay and count arguments. */
@@ -295,6 +325,9 @@ main(int argc, char *argv[])
 		case 'h':
 			usage();
 			return 0;
+		case 'i':
+			idle_flag = 1;
+			break;
 		default:
 			usage();
 			return 2;
