@@ -24,6 +24,9 @@
 		value[length] = '\0'; \
 		v = atoll(value);
 
+#define BTOKB(b) b >> 10
+#define BTOMB(b) b >> 20
+
 struct io_node
 {
 	int pid;
@@ -40,6 +43,8 @@ struct io_node
 
 struct io_node *head = NULL;
 int idle_flag = 0;
+int mb_flag = 0;
+int kb_flag = 0;
 
 /* Prototypes */
 struct io_node *get_ion(int);
@@ -106,8 +111,15 @@ get_stats()
 	char value[64];
 
 	/* Display column headers. */
-	printf("%5s %8s %8s %8s %8s %8s %8s %8s %s\n", "pid", "rchar", "wchar",
-			"syscr", "syscw", "rbytes", "wbytes", "cwbytes", "command");
+	if (kb_flag == 1)
+		printf("%5s %8s %8s %8s %8s %8s %8s %8s %s\n", "pid", "rchar", "wchar",
+				"syscr", "syscw", "rkb", "wkb", "cwkb", "command");
+	else if (mb_flag == 1)
+		printf("%5s %8s %8s %8s %8s %8s %8s %8s %s\n", "pid", "rchar", "wchar",
+				"syscr", "syscw", "rmb", "wmb", "cwmb", "command");
+	else
+		printf("%5s %8s %8s %8s %8s %8s %8s %8s %s\n", "pid", "rchar", "wchar",
+				"syscr", "syscw", "rbytes", "wbytes", "cwbytes", "command");
 
 	/* Loop through the process table and display a line per pid. */
 	while ((ent = readdir(dir)) != NULL)
@@ -191,6 +203,27 @@ get_stats()
 			cancelled_write_bytes = ion->cancelled_write_bytes -
 					old_ion->cancelled_write_bytes;
 
+			if (kb_flag == 1)
+			{
+				rchar = BTOKB(rchar);
+				wchar = BTOKB(wchar);
+				syscr = BTOKB(syscr);
+				syscw = BTOKB(syscw);
+				read_bytes = BTOKB(read_bytes);
+				write_bytes = BTOKB(write_bytes);
+				cancelled_write_bytes = BTOKB(cancelled_write_bytes);
+			}
+			else if (mb_flag == 1)
+			{
+				rchar = BTOMB(rchar);
+				wchar = BTOMB(wchar);
+				syscr = BTOMB(syscr);
+				syscw = BTOMB(syscw);
+				read_bytes = BTOMB(read_bytes);
+				write_bytes = BTOMB(write_bytes);
+				cancelled_write_bytes = BTOMB(cancelled_write_bytes);
+			}
+
 			if (idle_flag == 1 && rchar == 0 && wchar == 0 && syscr == 0 &&
 					syscw == 0 && read_bytes == 0 && write_bytes == 0 &&
 					cancelled_write_bytes == 0)
@@ -272,8 +305,10 @@ void
 usage()
 {
 	printf("usage: iopp -h|--help\n");
-	printf("usage: iopp [-i] [delay [count]]\n");
+	printf("usage: iopp [-ikm] [delay [count]]\n");
 	printf("            -i hides idle processes\n");
+	printf("            -k display data in kilobytes\n");
+	printf("            -m display data in megabytes\n");
 }
 
 int
@@ -291,10 +326,12 @@ main(int argc, char *argv[])
 		static struct option long_options[] = {
 				{ "help", no_argument, 0, 'h' },
 				{ "idle", no_argument, 0, 'i' },
+				{ "kilobytes", no_argument, 0, 'k' },
+				{ "megabytes", no_argument, 0, 'm' },
 				{ 0, 0, 0, 0 }
 		};
 
-		c = getopt_long(argc, argv, "hi", long_options, &option_index);
+		c = getopt_long(argc, argv, "hikm", long_options, &option_index);
 		if (c == -1)
 		{
 			/* Handle delay and count arguments. */
@@ -327,6 +364,12 @@ main(int argc, char *argv[])
 			return 0;
 		case 'i':
 			idle_flag = 1;
+			break;
+		case 'k':
+			kb_flag = 1;
+			break;
+		case 'm':
+			mb_flag = 1;
 			break;
 		default:
 			usage();
