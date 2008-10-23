@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <getopt.h>
 
 #define PROC "/proc"
 
@@ -100,11 +101,75 @@ get_stats()
 				write_bytes, cancelled_write_bytes, command);
 	}
 	closedir(dir);
+	return;
+}
+
+void
+usage()
+{
+	printf("usage: iopp -h|--help\n");
+	printf("usage: iopp [delay [count]]\n");
 }
 
 int
 main(int argc, char *argv[])
 {
-	get_stats();
+	int c;
+
+	int delay = 0;
+	int count = 0;
+	int max_count = 1;
+
+	while (1)
+	{
+		int option_index = 0;
+		static struct option long_options[] = {
+				{ "help", no_argument, 0, 'h' },
+				{ 0, 0, 0, 0 }
+		};
+
+		c = getopt_long(argc, argv, "h", long_options, &option_index);
+		if (c == -1)
+		{
+			/* Handle delay and count arguments. */
+
+			if (argc == optind)
+				break; /* No additional arguments. */
+			else if ((argc - optind) == 1)
+			{
+				delay = atoi(argv[optind]);
+				max_count = -1;
+			}
+			else if ((argc - optind) == 2)
+			{
+				delay = atoi(argv[optind]);
+				max_count = atoi(argv[optind + 1]);
+			}
+			else
+			{
+				/* Too many additional arguments. */
+				usage();
+				return 3;
+			}
+			break;
+		}
+
+		switch (c)
+		{
+		case 'h':
+			usage();
+			return 0;
+		default:
+			usage();
+			return 2;
+		}
+	}
+
+	while (max_count == -1 || count++ < max_count)
+	{
+		get_stats();
+		if (count != max_count)
+			sleep(delay);
+	}
 	return 0;
 }
