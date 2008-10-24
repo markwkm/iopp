@@ -291,6 +291,11 @@ upsert_data(struct io_node *ion)
 			n->read_bytes = ion->read_bytes;
 			n->write_bytes = ion->write_bytes;
 			n->cancelled_write_bytes = ion->cancelled_write_bytes;
+			/*
+			 * If the pids wrap, then the command may be different then before.
+			 */
+			strcpy(n->command, ion->command);
+			free(ion);
 			return;
 		}
 		n = n->next;
