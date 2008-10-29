@@ -7,13 +7,13 @@ iopp \- I/O statistics per process
 .SH SYNOPSIS
 .B iopp -h|--help
 
-.B iopp [\-i] [\-k|\-m] [
+.B iopp [\-ci] [\-k|\-m] [
 .I delay
 .B [
 .I count
 .B ] ]
 
-.B iopp [\-\-idle] [\-\-kilobytes|\-\-megabytes] [
+.B iopp [\-\-command] [\-\-idle] [\-\-kilobytes|\-\-megabytes] [
 .I delay
 .B [
 .I count
@@ -22,6 +22,12 @@ iopp \- I/O statistics per process
 .B iopp
 reports I/O information from each process on the system.
 .SH OPTIONS
+.SS
+.B \-c, \-\-command
+.NF
+display full command line
+.FI
+.PP
 .SS
 .B \-h, \-\-help
 .NF

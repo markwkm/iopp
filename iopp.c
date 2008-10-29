@@ -42,6 +42,7 @@ struct io_node
 };
 
 struct io_node *head = NULL;
+int command_flag = 0;
 int idle_flag = 0;
 int mb_flag = 0;
 int kb_flag = 0;
@@ -145,25 +146,34 @@ get_stats()
 
 		ion = new_ion(ent->d_name);
 
-		/* Read 'io' file. */
-		sprintf(filename, "%s/%s/stat", PROC, ent->d_name);
+		if (command_flag == 0)
+			/* Read 'stat' file. */
+			sprintf(filename, "%s/%s/stat", PROC, ent->d_name);
+		else
+			/* Read 'cmdline' file. */
+			sprintf(filename, "%s/%s/cmdline", PROC, ent->d_name);
 		fd = open(filename, O_RDONLY);
 		if (fd == -1)
 		{
 			free(ion);
 			continue;
 		}
-		/*
-		 * The command is near the beginning; we don't need to be able to
-		 * the entire stat file.
-		 */
 		length = read(fd, buffer, sizeof(buffer) - 1);
 		close(fd);
 		buffer[length] = '\0';
-		p = strchr(buffer, '(');
-		++p;
-		q = strchr(p, ')');
-		length = q - p;
+		if (command_flag == 0)
+		{
+			/*
+			 * The command is near the beginning; we don't need to be able to
+			 * the entire stat file.
+			 */
+			p = strchr(buffer, '(');
+			++p;
+			q = strchr(p, ')');
+			length = q - p;
+		}
+		else
+			p = buffer;
 		strncpy(ion->command, p, length);
 		ion->command[length] = '\0';
 
@@ -310,7 +320,8 @@ void
 usage()
 {
 	printf("usage: iopp -h|--help\n");
-	printf("usage: iopp [-i] [-k|-m] [delay [count]]\n");
+	printf("usage: iopp [-ci] [-k|-m] [delay [count]]\n");
+	printf("            -c, --command display full command line\n");
 	printf("            -h, --help display help\n");
 	printf("            -i, --idle hides idle processes\n");
 	printf("            -k, --kilobytes display data in kilobytes\n");
@@ -330,6 +341,7 @@ main(int argc, char *argv[])
 	{
 		int option_index = 0;
 		static struct option long_options[] = {
+				{ "command", no_argument, 0, 'c' },
 				{ "help", no_argument, 0, 'h' },
 				{ "idle", no_argument, 0, 'i' },
 				{ "kilobytes", no_argument, 0, 'k' },
@@ -337,7 +349,7 @@ main(int argc, char *argv[])
 				{ 0, 0, 0, 0 }
 		};
 
-		c = getopt_long(argc, argv, "hikm", long_options, &option_index);
+		c = getopt_long(argc, argv, "chikm", long_options, &option_index);
 		if (c == -1)
 		{
 			/* Handle delay and count arguments. */
@@ -365,6 +377,9 @@ main(int argc, char *argv[])
 
 		switch (c)
 		{
+		case 'c':
+			command_flag = 1;
+			break;
 		case 'h':
 			usage();
 			return 0;
