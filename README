@@ -1,0 +1,12 @@
+To build 'iopp':
+
+    cmake CMakeLists.txt
+    make
+
+-----
+
+To install 'iopp':
+
+    make install DESTDIR=/usr
+
+'iopp' is installed into '/usr/bin'.
