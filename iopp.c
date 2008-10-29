@@ -310,10 +310,11 @@ void
 usage()
 {
 	printf("usage: iopp -h|--help\n");
-	printf("usage: iopp [-ikm] [delay [count]]\n");
-	printf("            -i hides idle processes\n");
-	printf("            -k display data in kilobytes\n");
-	printf("            -m display data in megabytes\n");
+	printf("usage: iopp [-i] [-k|-m] [delay [count]]\n");
+	printf("            -h, --help display help\n");
+	printf("            -i, --idle hides idle processes\n");
+	printf("            -k, --kilobytes display data in kilobytes\n");
+	printf("            -m, --megabytes display data in megabytes\n");
 }
 
 int

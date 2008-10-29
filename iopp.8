@@ -1,0 +1,121 @@
+.\" Process this file with
+.\" groff -man -Tascii iopp.8
+.\"
+.TH IOPP 8 "OCTOBER 2008" IOPP ""
+.SH NAME
+iopp \- I/O statistics per process
+.SH SYNOPSIS
+.B iopp -h|--help
+
+.B iopp [\-i] [\-k|\-m] [
+.I delay
+.B [
+.I count
+.B ] ]
+
+.B iopp [\-\-idle] [\-\-kilobytes|\-\-megabytes] [
+.I delay
+.B [
+.I count
+.B ] ]
+.SH DESCRIPTION
+.B iopp
+reports I/O information from each process on the system.
+.SH OPTIONS
+.SS
+.B \-h, \-\-help
+.NF
+display help
+.FI
+.PP
+.SS
+.B \-i, \-\-idle
+hide idle processes
+.FI
+.PP
+.SS
+.B \-k, \-\-kilobytes
+display data in kilobytes
+.FI
+.PP
+.SS
+.B \-m, \-\-megabytes
+.NF
+display data in megabytes
+.FI
+.PP
+.SS
+.I delay
+.NF
+delay between updates in seconds, if no delay is specified then only one
+report of 0's (zeros) is printed
+.FI
+.PP
+.SS
+.I count
+.NF
+the number of updates, if no count is specified and delay is defined then
+count defaults to infinity
+.FI
+.PP
+.SH FIELD DESCRIPTION
+.SS
+.B pid
+.NF
+The process id.
+.FI
+.PP
+.SS
+.B rchar
+.NF
+The number of bytes which this task has caused to be read from storage.
+.FI
+.PP
+.SS
+.B wchar
+.NF
+The number of bytes which this task has caused, or shall cause to be
+written to disk.
+.FI
+.PP
+.SS
+.B syscr
+.NF
+Count of the number of read I/O operations.
+.FI
+.PP
+.SS
+.B syscw
+.NF
+Count of the number of write I/O operations.
+.FI
+.PP
+.SS
+.B rbytes
+.NF
+Count of the number of bytes which this process really did cause to be
+fetched from the storage layer.
+.FI
+.PP
+.SS
+.B wbytes
+.NF
+Count of the number of bytes which this process really did cause to be
+sent to the storage layer.
+.FI
+.PP
+.SS
+.B cwbytes
+.NF
+The number of bytes which this process caused to not happen, by
+truncating pagecache.
+.FI
+.PP
+.SS
+.B command
+.NF
+Filename of the executable.
+.FI
+.PP
+.SH AUTHOR
+Mark Wong <markwkm@gmail.com>
