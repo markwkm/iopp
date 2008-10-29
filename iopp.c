@@ -52,6 +52,44 @@ struct io_node *get_ion(int);
 struct io_node *new_ion(char *);
 void upsert_data(struct io_node *);
 
+int
+get_cmdline(struct io_node *ion)
+{
+	int fd;
+	int length;
+	char filename[64];
+	char buffer[256];
+	char *p;
+	char *q;
+
+
+	sprintf(filename, "%s/%d/cmdline", PROC, ion->pid);
+	fd = open(filename, O_RDONLY);
+	if (fd == -1)
+		return 1;
+	length = read(fd, buffer, sizeof(buffer) - 1);
+	close(fd);
+	if (length == 0)
+		return 2;
+	buffer[length] = '\0';
+	if (command_flag == 0)
+	{
+		/*
+		 * The command is near the beginning; we don't need to be able to
+		 * the entire stat file.
+		 */
+		p = strchr(buffer, '(');
+		++p;
+		q = strchr(p, ')');
+		length = q - p;
+	}
+	else
+		p = buffer;
+	strncpy(ion->command, p, length);
+	ion->command[length] = '\0';
+	return 0;
+}
+
 struct io_node *
 get_ion(int pid)
 {
@@ -64,6 +102,36 @@ get_ion(int pid)
 		c = c->next;
 	}
 	return c;
+}
+
+int
+get_tcomm(struct io_node *ion)
+{
+	int fd;
+	int length;
+	char filename[64];
+	char buffer[256];
+	char *p;
+	char *q;
+
+	sprintf(filename, "%s/%d/stat", PROC, ion->pid);
+	fd = open(filename, O_RDONLY);
+	if (fd == -1)
+		return 1;
+	length = read(fd, buffer, sizeof(buffer) - 1);
+	close(fd);
+	buffer[length] = '\0';
+	/*
+	 * The command is near the beginning; we don't need to be able to
+	 * the entire stat file.
+	 */
+	p = strchr(buffer, '(');
+	++p;
+	q = strchr(p, ')');
+	length = q - p;
+	strncpy(ion->command, p, length);
+	ion->command[length] = '\0';
+	return 0;
 }
 
 struct io_node *
@@ -125,8 +193,10 @@ get_stats()
 	/* Loop through the process table and display a line per pid. */
 	while ((ent = readdir(dir)) != NULL)
 	{
+		int rc;
 		int fd;
 		int length;
+
 		char *p;
 		char *q;
 
@@ -146,36 +216,17 @@ get_stats()
 
 		ion = new_ion(ent->d_name);
 
-		if (command_flag == 0)
-			/* Read 'stat' file. */
-			sprintf(filename, "%s/%s/stat", PROC, ent->d_name);
-		else
-			/* Read 'cmdline' file. */
-			sprintf(filename, "%s/%s/cmdline", PROC, ent->d_name);
-		fd = open(filename, O_RDONLY);
-		if (fd == -1)
+		if (command_flag == 1)
+			rc = get_cmdline(ion);
+		if (command_flag == 0 || rc != 0)
+			/* If the full command line is not asked for or is empty... */
+			rc = get_tcomm(ion);
+
+		if (rc != 0)
 		{
 			free(ion);
 			continue;
 		}
-		length = read(fd, buffer, sizeof(buffer) - 1);
-		close(fd);
-		buffer[length] = '\0';
-		if (command_flag == 0)
-		{
-			/*
-			 * The command is near the beginning; we don't need to be able to
-			 * the entire stat file.
-			 */
-			p = strchr(buffer, '(');
-			++p;
-			q = strchr(p, ')');
-			length = q - p;
-		}
-		else
-			p = buffer;
-		strncpy(ion->command, p, length);
-		ion->command[length] = '\0';
 
 		/* Read 'io' file. */
 		sprintf(filename, "%s/%s/io", PROC, ent->d_name);
