@@ -285,21 +285,20 @@ get_stats()
 				cancelled_write_bytes = BTOMB(cancelled_write_bytes);
 			}
 
-			if (idle_flag == 1 && rchar == 0 && wchar == 0 && syscr == 0 &&
+			if (!(idle_flag == 1 && rchar == 0 && wchar == 0 && syscr == 0 &&
 					syscw == 0 && read_bytes == 0 && write_bytes == 0 &&
-					cancelled_write_bytes == 0)
-				continue;
+					cancelled_write_bytes == 0))
 
-			printf("%5d %8lld %8lld %8lld %8lld %8lld %8lld %8lld %s\n",
-					ion->pid,
-					rchar,
-					wchar,
-					syscr,
-					syscw,
-					read_bytes,
-					write_bytes,
-					cancelled_write_bytes,
-					ion->command);
+				printf("%5d %8lld %8lld %8lld %8lld %8lld %8lld %8lld %s\n",
+						ion->pid,
+						rchar,
+						wchar,
+						syscr,
+						syscw,
+						read_bytes,
+						write_bytes,
+						cancelled_write_bytes,
+						ion->command);
 		}
 		else if (idle_flag != 1)
 			/*
