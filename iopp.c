@@ -27,6 +27,8 @@
 #define BTOKB(b) b >> 10
 #define BTOMB(b) b >> 20
 
+#define BUFFERLEN 127
+
 struct io_node
 {
 	int pid;
@@ -37,7 +39,7 @@ struct io_node
 	long long read_bytes;
 	long long write_bytes;
 	long long cancelled_write_bytes;
-	char command[64];
+	char command[BUFFERLEN];
 	struct io_node *next;
 };
 
@@ -58,7 +60,7 @@ get_cmdline(struct io_node *ion)
 	int fd;
 	int length;
 	char filename[64];
-	char buffer[256];
+	char buffer[BUFFERLEN];
 	char *p;
 	char *q;
 
@@ -85,6 +87,7 @@ get_cmdline(struct io_node *ion)
 	}
 	else
 		p = buffer;
+	length = length < BUFFERLEN ? length : BUFFERLEN;
 	strncpy(ion->command, p, length);
 	ion->command[length] = '\0';
 	return 0;
@@ -110,7 +113,7 @@ get_tcomm(struct io_node *ion)
 	int fd;
 	int length;
 	char filename[64];
-	char buffer[256];
+	char buffer[BUFFERLEN + 1];
 	char *p;
 	char *q;
 
@@ -175,7 +178,7 @@ get_stats()
 	DIR *dir = opendir(PROC);
 	struct dirent *ent;
 	char filename[64];
-	char buffer[256];
+	char buffer[BUFFERLEN + 1];
 
 	char value[64];
 
