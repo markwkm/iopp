@@ -20,6 +20,7 @@
 		++p; \
 		q = strchr(p, '\n'); \
 		length = q - p; \
+		length = length < BUFFERLEN ? length : BUFFERLEN; \
 		strncpy(value, p, length); \
 		value[length] = '\0'; \
 		v = atoll(value);
@@ -180,7 +181,7 @@ get_stats()
 	char filename[64];
 	char buffer[BUFFERLEN + 1];
 
-	char value[64];
+	char value[BUFFERLEN];
 
 	/* Display column headers. */
 	if (kb_flag == 1)
