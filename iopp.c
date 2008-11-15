@@ -18,9 +18,14 @@
 #define GET_VALUE(v) \
 		p = strchr(p, ':'); \
 		++p; \
+		++p; \
 		q = strchr(p, '\n'); \
 		length = q - p; \
-		length = length < BUFFERLEN ? length : BUFFERLEN; \
+		if (length >= BUFFERLEN) \
+		{ \
+			printf("ERROR - value is larger than the buffer: %d\n", __LINE__); \
+			exit(1); \
+		} \
 		strncpy(value, p, length); \
 		value[length] = '\0'; \
 		v = atoll(value);
@@ -28,7 +33,9 @@
 #define BTOKB(b) b >> 10
 #define BTOMB(b) b >> 20
 
-#define BUFFERLEN 127
+#define BUFFERLEN 255
+#define COMMANDLEN 1024
+#define VALUELEN 63
 
 struct io_node
 {
@@ -40,7 +47,7 @@ struct io_node
 	long long read_bytes;
 	long long write_bytes;
 	long long cancelled_write_bytes;
-	char command[BUFFERLEN];
+	char command[COMMANDLEN + 1];
 	struct io_node *next;
 };
 
@@ -60,21 +67,24 @@ get_cmdline(struct io_node *ion)
 {
 	int fd;
 	int length;
-	char filename[64];
-	char buffer[BUFFERLEN];
+	char filename[BUFFERLEN + 1];
+	char buffer[COMMANDLEN + 1];
 	char *p;
 	char *q;
 
 
-	sprintf(filename, "%s/%d/cmdline", PROC, ion->pid);
+	length = snprintf(filename, BUFFERLEN, "%s/%d/cmdline", PROC, ion->pid);
+	if (length == BUFFERLEN)
+		printf("WARNING - filename length may be too big for buffer: %d\n",
+				__LINE__);
 	fd = open(filename, O_RDONLY);
 	if (fd == -1)
 		return 1;
 	length = read(fd, buffer, sizeof(buffer) - 1);
 	close(fd);
+	buffer[length] = '\0';
 	if (length == 0)
 		return 2;
-	buffer[length] = '\0';
 	if (command_flag == 0)
 	{
 		/*
@@ -88,7 +98,7 @@ get_cmdline(struct io_node *ion)
 	}
 	else
 		p = buffer;
-	length = length < BUFFERLEN ? length : BUFFERLEN;
+	length = length < COMMANDLEN ? length : COMMANDLEN;
 	strncpy(ion->command, p, length);
 	ion->command[length] = '\0';
 	return 0;
@@ -113,18 +123,20 @@ get_tcomm(struct io_node *ion)
 {
 	int fd;
 	int length;
-	char filename[64];
+	char filename[BUFFERLEN + 1];
 	char buffer[BUFFERLEN + 1];
 	char *p;
 	char *q;
 
-	sprintf(filename, "%s/%d/stat", PROC, ion->pid);
+	length = snprintf(filename, BUFFERLEN, "%s/%d/stat", PROC, ion->pid);
+	if (length == BUFFERLEN)
+		printf("WARNING - filename length may be too big for buffer: %d\n",
+				__LINE__);
 	fd = open(filename, O_RDONLY);
 	if (fd == -1)
 		return 1;
 	length = read(fd, buffer, sizeof(buffer) - 1);
 	close(fd);
-	buffer[length] = '\0';
 	/*
 	 * The command is near the beginning; we don't need to be able to
 	 * the entire stat file.
@@ -133,6 +145,7 @@ get_tcomm(struct io_node *ion)
 	++p;
 	q = strchr(p, ')');
 	length = q - p;
+	length = length < BUFFERLEN ? length : BUFFERLEN;
 	strncpy(ion->command, p, length);
 	ion->command[length] = '\0';
 	return 0;
@@ -178,10 +191,10 @@ get_stats()
 {
 	DIR *dir = opendir(PROC);
 	struct dirent *ent;
-	char filename[64];
+	char filename[BUFFERLEN + 1];
 	char buffer[BUFFERLEN + 1];
 
-	char value[BUFFERLEN];
+	char value[BUFFERLEN + 1];
 
 	/* Display column headers. */
 	if (kb_flag == 1)
@@ -233,7 +246,10 @@ get_stats()
 		}
 
 		/* Read 'io' file. */
-		sprintf(filename, "%s/%s/io", PROC, ent->d_name);
+		length = snprintf(filename, BUFFERLEN, "%s/%s/io", PROC, ent->d_name);
+		if (length == BUFFERLEN)
+			printf("WARNING - filename length may be too big for buffer: %d\n",
+					__LINE__);
 		fd = open(filename, O_RDONLY);
 		if (fd == -1)
 		{
