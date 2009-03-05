@@ -7,13 +7,13 @@ iopp \- I/O statistics per process
 .SH SYNOPSIS
 .B iopp -h|--help
 
-.B iopp [\-ci] [\-k|\-m] [
+.B iopp [\-ci] [\-k|\-m|\-u] [
 .I delay
 .B [
 .I count
 .B ] ]
 
-.B iopp [\-\-command] [\-\-idle] [\-\-kilobytes|\-\-megabytes] [
+.B iopp [\-\-command] [\-\-idle] [\-\-kilobytes|\-\-megabytes|\-\-human\-readable] [
 .I delay
 .B [
 .I count
@@ -48,6 +48,12 @@ display data in kilobytes
 .B \-m, \-\-megabytes
 .NF
 display data in megabytes
+.FI
+.PP
+.SS
+.B \-u, \-\-human-readable
+.NF
+display data in bytes, kilobytes, megabytes, or gigabytes
 .FI
 .PP
 .SS
@@ -97,21 +103,21 @@ Count of the number of write I/O operations.
 .FI
 .PP
 .SS
-.B rbytes
+.B rbytes rkb rmb reads
 .NF
 Count of the number of bytes which this process really did cause to be
 fetched from the storage layer.
 .FI
 .PP
 .SS
-.B wbytes
+.B wbytes wkb wmb writes
 .NF
 Count of the number of bytes which this process really did cause to be
 sent to the storage layer.
 .FI
 .PP
 .SS
-.B cwbytes
+.B cwbytes cwkb cwmb cwrites
 .NF
 The number of bytes which this process caused to not happen, by
 truncating pagecache.

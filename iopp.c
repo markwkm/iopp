@@ -37,6 +37,8 @@
 #define COMMANDLEN 1024
 #define VALUELEN 63
 
+#define NUM_STRINGS 8
+
 struct io_node
 {
 	int pid;
@@ -56,11 +58,42 @@ int command_flag = 0;
 int idle_flag = 0;
 int mb_flag = 0;
 int kb_flag = 0;
+int hr_flag = 0;
 
 /* Prototypes */
+char *format_b(long long);
 struct io_node *get_ion(int);
 struct io_node *new_ion(char *);
 void upsert_data(struct io_node *);
+
+char *
+format_b(long long amt)
+{
+	static char retarray[NUM_STRINGS][16];
+	static int	index = 0;
+	register char *ret;
+	register char tag = 'B';
+
+	ret = retarray[index];
+	index = (index + 1) % NUM_STRINGS;
+
+	if (amt >= 10000) {
+		amt = (amt + 512) / 1024;
+		tag = 'K';
+		if (amt >= 10000) {
+			amt = (amt + 512) / 1024;
+			tag = 'B';
+			if (amt >= 10000) {
+				amt = (amt + 512) / 1024;
+				tag = 'G';
+			}
+		}
+	}
+
+	snprintf(ret, sizeof(retarray[index]) - 1, "%lld%c", amt, tag);
+
+	return (ret);
+}
 
 int
 get_cmdline(struct io_node *ion)
@@ -197,7 +230,10 @@ get_stats()
 	char value[BUFFERLEN + 1];
 
 	/* Display column headers. */
-	if (kb_flag == 1)
+	if (hr_flag == 1)
+		printf("%5s %5s %5s %8s %8s %5s %6s %7s %s\n", "pid", "rchar", "wchar",
+				"syscr", "syscw", "reads", "writes", "cwrites", "command");
+	else if (kb_flag == 1)
 		printf("%5s %8s %8s %8s %8s %8s %8s %8s %s\n", "pid", "rchar", "wchar",
 				"syscr", "syscw", "rkb", "wkb", "cwkb", "command");
 	else if (mb_flag == 1)
@@ -284,7 +320,7 @@ get_stats()
 			cancelled_write_bytes = ion->cancelled_write_bytes -
 					old_ion->cancelled_write_bytes;
 
-			if (kb_flag == 1)
+			if (kb_flag == 1 && hr_flag == 0)
 			{
 				rchar = BTOKB(rchar);
 				wchar = BTOKB(wchar);
@@ -294,7 +330,7 @@ get_stats()
 				write_bytes = BTOKB(write_bytes);
 				cancelled_write_bytes = BTOKB(cancelled_write_bytes);
 			}
-			else if (mb_flag == 1)
+			else if (mb_flag == 1 && hr_flag == 0)
 			{
 				rchar = BTOMB(rchar);
 				wchar = BTOMB(wchar);
@@ -307,18 +343,30 @@ get_stats()
 
 			if (!(idle_flag == 1 && rchar == 0 && wchar == 0 && syscr == 0 &&
 					syscw == 0 && read_bytes == 0 && write_bytes == 0 &&
-					cancelled_write_bytes == 0))
-
-				printf("%5d %8lld %8lld %8lld %8lld %8lld %8lld %8lld %s\n",
-						ion->pid,
-						rchar,
-						wchar,
-						syscr,
-						syscw,
-						read_bytes,
-						write_bytes,
-						cancelled_write_bytes,
-						ion->command);
+					cancelled_write_bytes == 0)) {
+				if (hr_flag == 0)
+					printf("%5d %8lld %8lld %8lld %8lld %8lld %8lld %8lld %s\n",
+							ion->pid,
+							rchar,
+							wchar,
+							syscr,
+							syscw,
+							read_bytes,
+							write_bytes,
+							cancelled_write_bytes,
+							ion->command);
+				else
+					printf("%5d %5s %5s %8lld %8lld %5s %6s %7s %s\n",
+							ion->pid,
+							format_b(rchar),
+							format_b(wchar),
+							syscr,
+							syscw,
+							format_b(read_bytes),
+							format_b(write_bytes),
+							format_b(cancelled_write_bytes),
+							ion->command);
+			}
 		}
 		else if (idle_flag != 1)
 			/*
@@ -396,6 +444,7 @@ usage()
 	printf("            -i, --idle hides idle processes\n");
 	printf("            -k, --kilobytes display data in kilobytes\n");
 	printf("            -m, --megabytes display data in megabytes\n");
+	printf("            -u, --human-readable display data in kilo-, mega-, or giga-bytes\n");
 }
 
 int
@@ -413,13 +462,14 @@ main(int argc, char *argv[])
 		static struct option long_options[] = {
 				{ "command", no_argument, 0, 'c' },
 				{ "help", no_argument, 0, 'h' },
+				{ "human-readable", no_argument, 0, 'u' },
 				{ "idle", no_argument, 0, 'i' },
 				{ "kilobytes", no_argument, 0, 'k' },
 				{ "megabytes", no_argument, 0, 'm' },
 				{ 0, 0, 0, 0 }
 		};
 
-		c = getopt_long(argc, argv, "chikm", long_options, &option_index);
+		c = getopt_long(argc, argv, "chikmu", long_options, &option_index);
 		if (c == -1)
 		{
 			/* Handle delay and count arguments. */
@@ -461,6 +511,9 @@ main(int argc, char *argv[])
 			break;
 		case 'm':
 			mb_flag = 1;
+			break;
+		case 'u':
+			hr_flag = 1;
 			break;
 		default:
 			usage();
